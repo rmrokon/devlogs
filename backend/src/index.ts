@@ -6,6 +6,7 @@ import { connectDB } from "./config/database";
 import userRoutes from "./modules/users";
 import repositoryRoutes from "./modules/repositories";
 import activityRoutes from "./modules/activities";
+import authRoutes from "./modules/auth";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(express.json());
 app.use("/api/users", userRoutes);
 app.use("/api/repositories", repositoryRoutes);
 app.use("/api/activities", activityRoutes);
+app.use("/api/auth", authRoutes);
 
 // Root Route
 app.get("/", (req, res) => {

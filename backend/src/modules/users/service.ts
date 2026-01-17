@@ -28,4 +28,8 @@ export class UserService {
         }
         return await this.userRepository.create(data);
     }
+
+    async getUserByGithubId(githubId: string): Promise<User | null> {
+        return await this.userRepository.findByGithubId(githubId);
+    }
 }
