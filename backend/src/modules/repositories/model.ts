@@ -11,6 +11,7 @@ export class GithubRepository extends Model<IGithubRepository, RepositoryCreatio
     public url!: string;
     public stars!: number;
     public language!: string | null;
+    public languages!: any | null;
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
 }
@@ -41,6 +42,11 @@ GithubRepository.init(
         language: {
             type: DataTypes.STRING,
             allowNull: true,
+        },
+        languages: {
+            type: DataTypes.JSONB,
+            allowNull: true,
+            defaultValue: {},
         },
     },
     {

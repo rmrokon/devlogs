@@ -9,6 +9,7 @@ export class User extends Model<IUser, UserCreationAttributes> implements IUser 
     public github_id!: string;
     public username!: string;
     public access_token!: string | null;
+    public last_synced_at!: Date | null;
     public readonly created_at!: Date;
     public readonly updated_at!: Date;
 }
@@ -31,6 +32,10 @@ User.init(
         },
         access_token: {
             type: DataTypes.STRING,
+            allowNull: true,
+        },
+        last_synced_at: {
+            type: DataTypes.DATE,
             allowNull: true,
         },
     },

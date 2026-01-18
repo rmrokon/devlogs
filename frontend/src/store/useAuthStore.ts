@@ -1,10 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import api from '@/lib/axios';
 
 interface User {
     id: number;
     username: string;
     github_id: string;
+    totalCommits?: number;
+    last_synced_at?: string | null;
 }
 
 interface AuthState {
@@ -13,6 +16,7 @@ interface AuthState {
     setAuth: (user: User, token: string) => void;
     logout: () => void;
     isAuthenticated: () => boolean;
+    fetchUser: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -23,6 +27,16 @@ export const useAuthStore = create<AuthState>()(
             setAuth: (user, token) => set({ user, token }),
             logout: () => set({ user: null, token: null }),
             isAuthenticated: () => !!get().token,
+            fetchUser: async () => {
+                try {
+                    const res = await api.get('/users/me');
+                    const currentUser = get().user;
+                    // Ensure we merge stats and other data
+                    set({ user: { ...currentUser, ...res.data } as User });
+                } catch (error) {
+                    console.error('Failed to fetch user:', error);
+                }
+            }
         }),
         {
             name: 'auth-storage',

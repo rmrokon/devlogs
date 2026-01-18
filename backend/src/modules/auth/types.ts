@@ -12,5 +12,6 @@ export interface IAuthResponse {
         id: number;
         username: string;
         github_id: string;
+        totalCommits?: number;
     };
 }

@@ -32,26 +32,6 @@ export class AuthService {
         // 3. Find or Create User in DB
         let user;
         try {
-            // Check if user exists by Github ID
-            // Ideally we should have a method findUserByGithubId in UserService/Repository but we can reuse create or add a find method
-            // We need to implement findByGithubId in UserService publicly or just use createUser which checks existence
-            // However, createUser throws error if exists. So we need a way to get existing user.
-            // Let's rely on repository direct access via service if exposed or add a method to Service.
-            // Checking UserService implementation... it has getAllUsers and createUser.
-            // We need to add findByGithubId to UserService or handle the error.
-            // For better clean code, let's assume we will update UserService to check first.
-            // Actually, the UserService.createUser throws "User already exists".
-            // We should query first. UserService doesn't expose findByGithubId.
-
-            // Wait, UserService.createUser implementation:
-            // checks existingUser = await this.userRepository.findByGithubId(data.github_id);
-            // if (existingUser) throw Error.
-
-            // So I need to add findByGithubId to UserService to be clean.
-            // OR I catch the error in createUser? No, that's messy.
-            // I will add findByGithubId to UserService.
-
-            // For now, let's assume I will add it. I'll use it here.
             user = await this.userService.getUserByGithubId(githubUser.id.toString());
 
             if (!user) {
@@ -77,12 +57,16 @@ export class AuthService {
             { expiresIn: "7d" }
         );
 
+        // Fetch Stats
+        const stats = await this.githubService.getGithubStats(accessToken, user.username);
+
         return {
             token,
             user: {
                 id: user.id!,
                 username: user.username,
                 github_id: user.github_id,
+                ...stats,
             },
         };
     }

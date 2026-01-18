@@ -24,4 +24,12 @@ export class RepositoryRepository {
     async findByUserId(userId: number): Promise<GithubRepository[]> {
         return await GithubRepository.findAll({ where: { user_id: userId } });
     }
+
+    async findByNameAndUserId(name: string, userId: number): Promise<GithubRepository | null> {
+        return await GithubRepository.findOne({ where: { name, user_id: userId } });
+    }
+
+    async update(id: number, data: Partial<ICreateRepositoryDTO>): Promise<[number, GithubRepository[]]> {
+        return await GithubRepository.update(data, { where: { id }, returning: true });
+    }
 }

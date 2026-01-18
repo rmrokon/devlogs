@@ -45,4 +45,22 @@ export class UserController {
             }
         }
     }
+    async getMe(req: Request, res: Response): Promise<void> {
+        const user = (req as any).user;
+        if (!user) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+
+        try {
+            const fullUser = await this.userService.getUserByGithubId(user.github_id);
+            if (!fullUser) {
+                res.status(404).json({ message: "User not found" });
+                return;
+            }
+            res.json(fullUser);
+        } catch (error) {
+            res.status(500).json({ message: "Error fetching user", error });
+        }
+    }
 }

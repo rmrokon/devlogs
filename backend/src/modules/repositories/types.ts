@@ -5,6 +5,7 @@ export interface IGithubRepository {
     url: string;
     stars: number;
     language?: string | null;
+    languages?: any | null; // JSONB
     created_at?: Date;
     updated_at?: Date;
 }

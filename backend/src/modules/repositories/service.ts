@@ -28,4 +28,19 @@ export class RepositoryService {
     async getRepositoriesByUser(userId: number): Promise<GithubRepository[]> {
         return await this.repositoryRepository.findByUserId(userId);
     }
+
+    async findByNameAndUser(name: string, userId: number): Promise<GithubRepository | null> {
+        return await this.repositoryRepository.findByNameAndUserId(name, userId);
+    }
+
+    async upsertRepository(data: CreateRepositoryInput): Promise<GithubRepository> {
+        const existing = await this.repositoryRepository.findByNameAndUserId(data.name, data.user_id);
+        if (existing) {
+            await this.repositoryRepository.update(existing.id, data);
+            return existing; // Return existing (updated)
+            // Note: update returns [count, rows], we assume successful update.
+            // Ideally reload or return updated instance.
+        }
+        return await this.repositoryRepository.create(data);
+    }
 }

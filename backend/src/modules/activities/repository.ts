@@ -24,4 +24,8 @@ export class ActivityRepository {
     async findByRepoId(repoId: number): Promise<Activity[]> {
         return await Activity.findAll({ where: { repo_id: repoId } });
     }
+
+    async findByRepoTypeDate(repoId: number, type: string, date: Date): Promise<Activity | null> {
+        return await Activity.findOne({ where: { repo_id: repoId, type, date } });
+    }
 }

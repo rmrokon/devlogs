@@ -6,6 +6,7 @@ export const createRepositorySchema = z.object({
     url: z.string().url("Invalid URL"),
     stars: z.number().int().nonnegative().optional(),
     language: z.string().optional(),
+    languages: z.any().optional(),
 });
 
 export type CreateRepositoryInput = z.infer<typeof createRepositorySchema>;
