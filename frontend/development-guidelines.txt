@@ -1,0 +1,12 @@
+Keep this things in mind when writing code:
+
+1. Always write code keeping scalability in mind.
+2. Always follow all the best practices of software development.
+3. Breakdown long pages into multiple components. use shadcn components.
+4. Create custom hooks for each query.
+5. Use zustand for state management.
+6. Use tanstack-query for data fetching.
+7. Use tailwindcss for styling.
+8. Use React Hook Form for forms and zod for validation.
+9. Use eslint and prettier for linting and formatting.
+10. Always follow the DTO pattern while writing an API-call.
