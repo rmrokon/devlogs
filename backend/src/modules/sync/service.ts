@@ -111,33 +111,27 @@ export class SyncService {
         const pushEvents = events.filter((e: any) => e.type === 'PushEvent');
 
         for (const event of pushEvents) {
-            // Map to Activity
-            // We need repo_id. We must ensure repo exists in DB first (synced above).
-            // But getting DB ID for repo is tricky without querying.
-            // ActivityService.createActivity needs repo_id.
+            const repoFullName = event.repo.name; // e.g., "owner/repo"
+            const repoName = repoFullName.split('/')[1];
 
-            const repoName = event.repo.name.split('/')[1]; // owner/repo -> repo
+            // Try matching by the name we store
             const repo = await this.repositoryService.findByNameAndUser(repoName, user.id);
 
             if (repo) {
-                // Check if activity already exists? (Avoid dupes)
-                // Activity table has date. We can check by date + repo + type?
-                // Or just insert distinct.
-                // For MVP, lets just insert and maybe ignore dupes or use date as key.
-                // Activity model: id, repo_id, type, date, count.
-                // We aggregate commits per day? Or store individual events?
-                // Goal: "Commit Frequency Graph - Daily commits".
-                // So we should aggregate by day.
-
                 const date = new Date(event.created_at);
-                date.setHours(0, 0, 0, 0);
+                date.setUTCHours(0, 0, 0, 0);
+
+                // payload.size is most reliable for commits in a push
+                const commitCount = event.payload.size || (event.payload.commits ? event.payload.commits.length : 1);
 
                 await this.activityService.trackActivity({
                     repo_id: repo.id,
                     type: 'commit',
                     date: date,
-                    count: event.payload.size
+                    count: commitCount
                 });
+            } else {
+                console.log(`Repo not found in sync: ${repoName} for user ${user.id}`);
             }
         }
     }

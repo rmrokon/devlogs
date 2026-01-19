@@ -26,7 +26,7 @@ export class StatsService {
 
         const activities = await Activity.findAll({
             include: [{
-                model: GithubRepository, // We need to associate Activity -> Repo
+                model: GithubRepository,
                 where: { user_id: userId },
                 attributes: []
             }],
@@ -36,15 +36,19 @@ export class StatsService {
                     [Op.gte]: thirtyDaysAgo
                 }
             },
-            attributes: ['date', [sequelize.fn('SUM', sequelize.col('count')), 'count']],
-            group: ['date'],
-            order: [['date', 'ASC']]
+            attributes: [
+                [sequelize.fn('DATE', sequelize.col('date')), 'day'],
+                [sequelize.fn('SUM', sequelize.col('count')), 'count']
+            ],
+            group: [sequelize.fn('DATE', sequelize.col('date'))],
+            order: [[sequelize.fn('DATE', sequelize.col('date')), 'ASC']],
+            raw: true
         });
 
         // Format for frontend graph
         const commitTrend = activities.map((a: any) => ({
-            date: a.date,
-            count: parseInt(a.dataValues.count)
+            date: a.day,
+            count: parseInt(a.count)
         }));
 
         // 2. Active Streak
