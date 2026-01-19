@@ -20,7 +20,6 @@ export class StatsService {
         console.log("This is User :: ", { user })
         const userId = user.id;
 
-        // 1. Commit Frequency (Last 30 days)
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -45,18 +44,10 @@ export class StatsService {
             raw: true
         });
 
-        // Format for frontend graph
         const commitTrend = activities.map((a: any) => ({
             date: a.day,
             count: parseInt(a.count)
         }));
-
-        // 2. Active Streak
-        // Need to fetch daily counts to calc streak
-        // We can reuse the query above but maybe for longer period or just iterate.
-        // Let's approximate from the 30 days or fetch last year?
-        // User asked for "Current/longest streak".
-        // Let's fetch all activities distinct dates sorted desc.
 
         const activityDates = await Activity.findAll({
             include: [{
@@ -72,7 +63,6 @@ export class StatsService {
             raw: true
         });
 
-        // Calc streak logic
         const dates = activityDates.map((a: any) => {
             const d = new Date(a.date);
             d.setHours(0, 0, 0, 0);
