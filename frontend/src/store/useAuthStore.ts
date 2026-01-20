@@ -31,7 +31,6 @@ export const useAuthStore = create<AuthState>()(
                 try {
                     const res = await api.get('/users/me');
                     const currentUser = get().user;
-                    // Ensure we merge stats and other data
                     set({ user: { ...currentUser, ...res.data } as User });
                 } catch (error) {
                     console.error('Failed to fetch user:', error);

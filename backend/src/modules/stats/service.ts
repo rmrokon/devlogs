@@ -17,7 +17,6 @@ export class StatsService {
     }
 
     async getDashboardStats(user: User) {
-        console.log("This is User :: ", { user })
         const userId = user.id;
 
         const thirtyDaysAgo = new Date();
@@ -97,7 +96,6 @@ export class StatsService {
                 currentStreak = tempStreak;
             }
 
-            // Longest streak
             let currentLongest = 0;
             let currentTemp = 1;
             for (let i = 0; i < dates.length - 1; i++) {
@@ -114,7 +112,6 @@ export class StatsService {
             longestStreak = currentLongest;
         }
 
-        // 3. Top Languages
         const repos = await GithubRepository.findAll({
             where: { user_id: userId },
             attributes: ['languages']
@@ -132,10 +129,7 @@ export class StatsService {
         const topLanguages = Object.entries(languageMap)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 5)
-            .map(([language, bytes]) => ({ language, bytes }));
 
-        // 4. Repo Activity (Active Repos)
-        // Check recent commits per repo
         const activeRepos = await Activity.findAll({
             include: [{
                 model: GithubRepository,

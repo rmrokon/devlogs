@@ -37,19 +37,14 @@ export class SyncService {
         }
 
         try {
-            // Calculate since date: use 30 days ago OR last_synced_at minus a safety buffer (e.g. 1 hour)
-            // Buffer is to catch any commits that might have happened simultaneously with last sync
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
             let sinceDate = thirtyDaysAgo;
             if (user.last_synced_at) {
                 const lastSync = new Date(user.last_synced_at);
-                // Start at the beginning of the day of last sync to ensure we refresh the full day's count
                 lastSync.setUTCHours(0, 0, 0, 0);
 
-                // We still only care about last 30 days for the dashboard frequency, 
-                // but we can sync more? No, let's stick to 30 days max for now.
                 if (lastSync > thirtyDaysAgo) {
                     sinceDate = lastSync;
                 }
@@ -75,7 +70,6 @@ export class SyncService {
         let hasMoreRepos = true;
 
         while (hasMoreRepos) {
-            // Sort by pushed to stop early if we hit old repos
             const response = await axios.get(`https://api.github.com/users/${user.username}/repos?per_page=100&page=${repoPage}&sort=pushed`, {
                 headers: { Authorization: `Bearer ${user.access_token}` }
             });
@@ -87,20 +81,17 @@ export class SyncService {
             }
 
             for (const repo of repos) {
-                // Check if repo has been pushed in the sync window
                 const pushedPath = new Date(repo.pushed_at);
                 if (pushedPath < sinceDate) {
-                    hasMoreRepos = false; // Stop fetching more pages
-                    break; // Stop processing this page
+                    hasMoreRepos = false;
+                    break;
                 }
 
-                // 1. Fetch languages for each repo
                 const langResponse = await axios.get(repo.languages_url, {
                     headers: { Authorization: `Bearer ${user.access_token}` }
                 });
                 const languages = langResponse.data;
 
-                // 2. Create or Update Repository in DB
                 const dbRepo = await this.repositoryService.upsertRepository({
                     user_id: user.id,
                     name: repo.name,
@@ -110,7 +101,6 @@ export class SyncService {
                     languages: languages
                 });
 
-                // 3. Fetch Commits directly for accuracy (sinceDate)
                 const commitsUrl = repo.commits_url.replace('{/sha}', '');
                 try {
                     const commitsByDate: Record<string, number> = {};
@@ -144,9 +134,6 @@ export class SyncService {
                         }
                     }
 
-                    // 4. Update Activity (Daily counts)
-                    // If we use sinceDate as the start of the day, we get the FULL count for those days
-                    // and upsert will overwrite with the latest full count.
                     for (const [dateStr, count] of Object.entries(commitsByDate)) {
                         await this.activityService.upsertActivity({
                             repo_id: dbRepo.id,
@@ -171,7 +158,5 @@ export class SyncService {
     }
 
     private async syncActivities(user: User): Promise<void> {
-        // Deprecated for commit tracking, but kept for future event types (PRs, issues) if needed.
-        // For now, it doesn't do anything to avoid duplicate counts.
     }
 }

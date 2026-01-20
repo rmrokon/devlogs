@@ -28,12 +28,11 @@ export default function DashboardPage() {
     const handleSync = () => {
         sync(undefined, {
             onSuccess: () => {
-                fetchUser(); // Refresh user to get new last_synced_at
+                fetchUser();
             }
         });
     };
 
-    // Calculate generic stats
     const totalCommits = stats?.commitTrend.reduce((acc, obj) => acc + obj.count, 0) || 0;
     const currentStreak = stats?.streak?.current || 0;
     const longestStreak = stats?.streak?.longest || 0;
@@ -62,7 +61,6 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Overview Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -97,7 +95,6 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                {/* Commit Trend Chart */}
                 <Card className="col-span-4">
                     <CardHeader>
                         <CardTitle>Commit Frequency</CardTitle>
@@ -136,7 +133,6 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
 
-                {/* Top Languages */}
                 <Card className="col-span-3">
                     <CardHeader>
                         <CardTitle>Top Languages</CardTitle>
@@ -180,7 +176,6 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
-            {/* Active Repositories */}
             <Card>
                 <CardHeader>
                     <CardTitle>Repository Activity</CardTitle>
