@@ -90,7 +90,10 @@ export class SyncService {
                 const langResponse = await axios.get(repo.languages_url, {
                     headers: { Authorization: `Bearer ${user.access_token}` }
                 });
-                const languages = langResponse.data;
+                const languages = Object.entries(langResponse.data).map(([language, bytes]) => ({
+                    language,
+                    bytes: bytes as number
+                }));
 
                 const dbRepo = await this.repositoryService.upsertRepository({
                     user_id: user.id,

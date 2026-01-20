@@ -5,7 +5,7 @@ export interface IGithubRepository {
     url: string;
     stars: number;
     language?: string | null;
-    languages?: any | null; // JSONB
+    languages?: Array<{ language: string, bytes: number }> | null; // JSONB
     created_at?: Date;
     updated_at?: Date;
 }
@@ -16,4 +16,5 @@ export interface ICreateRepositoryDTO {
     url: string;
     stars?: number;
     language?: string;
+    languages?: Array<{ language: string, bytes: number }>;
 }

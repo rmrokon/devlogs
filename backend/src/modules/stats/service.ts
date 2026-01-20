@@ -117,17 +117,17 @@ export class StatsService {
             attributes: ['languages']
         });
 
-        const languageMap: Record<string, number> = {};
+        const languages: { language: string, bytes: number }[] = [];
         repos.forEach(repo => {
-            if (repo.languages) {
-                Object.entries(repo.languages).forEach(([lang, bytes]) => {
-                    languageMap[lang] = (languageMap[lang] || 0) + (bytes as number);
+            if (repo.languages && Array.isArray(repo.languages)) {
+                repo.languages.forEach(({ language, bytes }) => {
+                    languages.push({ language, bytes });
                 });
             }
         });
 
-        const topLanguages = Object.entries(languageMap)
-            .sort(([, a], [, b]) => b - a)
+        const topLanguages = languages
+            .sort((a, b) => b.bytes - a.bytes)
             .slice(0, 5)
 
         const activeRepos = await Activity.findAll({

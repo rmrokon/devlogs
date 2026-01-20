@@ -163,7 +163,7 @@ export default function DashboardPage() {
                                     </PieChart>
                                 </ResponsiveContainer>
                             )}
-                            <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                            <div className="flex flex-wrap gap-2 justify-center">
                                 {(stats?.topLanguages || []).map((lang, i) => (
                                     <div key={lang.language} className="flex items-center gap-1 text-xs">
                                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
