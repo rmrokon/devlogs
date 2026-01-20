@@ -50,64 +50,105 @@ export class SyncService {
     }
 
     private async syncRepositories(user: User): Promise<void> {
-        const response = await axios.get(`https://api.github.com/users/${user.username}/repos?per_page=100`, {
-            headers: { Authorization: `Bearer ${user.access_token}` }
-        });
-
-        const repos = response.data;
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         const sinceDateString = thirtyDaysAgo.toISOString();
 
-        for (const repo of repos) {
-            // 1. Fetch languages for each repo
-            const langResponse = await axios.get(repo.languages_url, {
+        let repoPage = 1;
+        let hasMoreRepos = true;
+
+        while (hasMoreRepos) {
+            // Sort by pushed to stop early if we hit old repos
+            const response = await axios.get(`https://api.github.com/users/${user.username}/repos?per_page=100&page=${repoPage}&sort=pushed`, {
                 headers: { Authorization: `Bearer ${user.access_token}` }
             });
-            const languages = langResponse.data;
 
-            // 2. Create or Update Repository in DB
-            const dbRepo = await this.repositoryService.upsertRepository({
-                user_id: user.id,
-                name: repo.name,
-                url: repo.html_url,
-                stars: repo.stargazers_count,
-                language: repo.language,
-                languages: languages
-            });
+            const repos = response.data;
+            if (repos.length === 0) {
+                hasMoreRepos = false;
+                break;
+            }
 
-            // 3. Fetch Commits directly for accuracy (Last 30 days)
-            // repo.commits_url is e.g. "https://api.github.com/repos/octocat/Hello-World/commits{/sha}"
-            const commitsUrl = repo.commits_url.replace('{/sha}', '');
-            try {
-                const commitsResponse = await axios.get(`${commitsUrl}?since=${sinceDateString}&per_page=100`, {
+            for (const repo of repos) {
+                // Check if repo has been pushed in last 30 days
+                const pushedPath = new Date(repo.pushed_at);
+                if (pushedPath < thirtyDaysAgo) {
+                    hasMoreRepos = false; // Stop fetching more pages
+                    break; // Stop processing this page
+                }
+
+                // 1. Fetch languages for each repo
+                const langResponse = await axios.get(repo.languages_url, {
                     headers: { Authorization: `Bearer ${user.access_token}` }
                 });
+                const languages = langResponse.data;
 
-                const commits = commitsResponse.data;
-                const commitsByDate: Record<string, number> = {};
+                // 2. Create or Update Repository in DB
+                const dbRepo = await this.repositoryService.upsertRepository({
+                    user_id: user.id,
+                    name: repo.name,
+                    url: repo.html_url,
+                    stars: repo.stargazers_count,
+                    language: repo.language,
+                    languages: languages
+                });
 
-                for (const commitData of commits) {
-                    // commitData.commit.committer.date
-                    const dateStr = commitData.commit.committer.date;
-                    const date = new Date(dateStr);
-                    date.setUTCHours(0, 0, 0, 0);
-                    const isoDate = date.toISOString().split('T')[0];
+                // 3. Fetch Commits directly for accuracy (Last 30 days)
+                // repo.commits_url is e.g. "https://api.github.com/repos/octocat/Hello-World/commits{/sha}"
+                const commitsUrl = repo.commits_url.replace('{/sha}', '');
+                try {
+                    const commitsByDate: Record<string, number> = {};
+                    let page = 1;
+                    let hasMoreCommits = true;
 
-                    commitsByDate[isoDate] = (commitsByDate[isoDate] || 0) + 1;
+                    while (hasMoreCommits) {
+                        const commitsResponse = await axios.get(`${commitsUrl}?since=${sinceDateString}&per_page=100&page=${page}`, {
+                            headers: { Authorization: `Bearer ${user.access_token}` }
+                        });
+
+                        const commits = commitsResponse.data;
+                        if (commits.length === 0) {
+                            hasMoreCommits = false;
+                            break;
+                        }
+
+                        for (const commitData of commits) {
+                            // commitData.commit.committer.date
+                            const dateStr = commitData.commit.committer.date;
+                            const date = new Date(dateStr);
+                            date.setUTCHours(0, 0, 0, 0);
+                            const isoDate = date.toISOString().split('T')[0];
+
+                            commitsByDate[isoDate] = (commitsByDate[isoDate] || 0) + 1;
+                        }
+
+                        if (commits.length < 100) {
+                            hasMoreCommits = false;
+                        } else {
+                            page++;
+                        }
+                    }
+
+                    // 4. Update Activity (Daily counts)
+                    for (const [dateStr, count] of Object.entries(commitsByDate)) {
+                        await this.activityService.upsertActivity({
+                            repo_id: dbRepo.id,
+                            type: 'commit',
+                            date: new Date(dateStr),
+                            count: count
+                        });
+                    }
+                } catch (err: any) {
+                    console.warn(`Could not sync commits for ${repo.name}: ${err.message}`);
                 }
+            }
 
-                // 4. Update Activity (Daily counts)
-                for (const [dateStr, count] of Object.entries(commitsByDate)) {
-                    await this.activityService.upsertActivity({
-                        repo_id: dbRepo.id,
-                        type: 'commit',
-                        date: new Date(dateStr),
-                        count: count
-                    });
+            if (hasMoreRepos) {
+                if (repos.length < 100) {
+                    hasMoreRepos = false;
+                } else {
+                    repoPage++;
                 }
-            } catch (err: any) {
-                console.warn(`Could not sync commits for ${repo.name}: ${err.message}`);
             }
         }
     }
