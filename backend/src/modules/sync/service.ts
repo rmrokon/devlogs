@@ -37,9 +37,25 @@ export class SyncService {
         }
 
         try {
-            await this.syncRepositories(user);
-            // syncActivities is deprecated for commit frequency, using direct commit sync in syncRepositories
-            // await this.syncActivities(user); 
+            // Calculate since date: use 30 days ago OR last_synced_at minus a safety buffer (e.g. 1 hour)
+            // Buffer is to catch any commits that might have happened simultaneously with last sync
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            let sinceDate = thirtyDaysAgo;
+            if (user.last_synced_at) {
+                const lastSync = new Date(user.last_synced_at);
+                // Start at the beginning of the day of last sync to ensure we refresh the full day's count
+                lastSync.setUTCHours(0, 0, 0, 0);
+
+                // We still only care about last 30 days for the dashboard frequency, 
+                // but we can sync more? No, let's stick to 30 days max for now.
+                if (lastSync > thirtyDaysAgo) {
+                    sinceDate = lastSync;
+                }
+            }
+
+            await this.syncRepositories(user, sinceDate);
 
             user.last_synced_at = new Date();
             await user.save();
@@ -49,10 +65,11 @@ export class SyncService {
         }
     }
 
-    private async syncRepositories(user: User): Promise<void> {
+    private async syncRepositories(user: User, sinceDate: Date): Promise<void> {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const sinceDateString = thirtyDaysAgo.toISOString();
+
+        const sinceDateString = sinceDate.toISOString();
 
         let repoPage = 1;
         let hasMoreRepos = true;
@@ -70,9 +87,9 @@ export class SyncService {
             }
 
             for (const repo of repos) {
-                // Check if repo has been pushed in last 30 days
+                // Check if repo has been pushed in the sync window
                 const pushedPath = new Date(repo.pushed_at);
-                if (pushedPath < thirtyDaysAgo) {
+                if (pushedPath < sinceDate) {
                     hasMoreRepos = false; // Stop fetching more pages
                     break; // Stop processing this page
                 }
@@ -93,8 +110,7 @@ export class SyncService {
                     languages: languages
                 });
 
-                // 3. Fetch Commits directly for accuracy (Last 30 days)
-                // repo.commits_url is e.g. "https://api.github.com/repos/octocat/Hello-World/commits{/sha}"
+                // 3. Fetch Commits directly for accuracy (sinceDate)
                 const commitsUrl = repo.commits_url.replace('{/sha}', '');
                 try {
                     const commitsByDate: Record<string, number> = {};
@@ -113,7 +129,6 @@ export class SyncService {
                         }
 
                         for (const commitData of commits) {
-                            // commitData.commit.committer.date
                             const dateStr = commitData.commit.committer.date;
                             const date = new Date(dateStr);
                             date.setUTCHours(0, 0, 0, 0);
@@ -130,6 +145,8 @@ export class SyncService {
                     }
 
                     // 4. Update Activity (Daily counts)
+                    // If we use sinceDate as the start of the day, we get the FULL count for those days
+                    // and upsert will overwrite with the latest full count.
                     for (const [dateStr, count] of Object.entries(commitsByDate)) {
                         await this.activityService.upsertActivity({
                             repo_id: dbRepo.id,

@@ -43,5 +43,11 @@ Activity.init(
         tableName: "activities",
         timestamps: true,
         underscored: true,
+        indexes: [
+            {
+                unique: true,
+                fields: ["repo_id", "type", "date"],
+            },
+        ],
     }
 );
