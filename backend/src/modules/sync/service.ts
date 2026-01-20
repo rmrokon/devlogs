@@ -38,7 +38,8 @@ export class SyncService {
 
         try {
             await this.syncRepositories(user);
-            await this.syncActivities(user);
+            // syncActivities is deprecated for commit frequency, using direct commit sync in syncRepositories
+            // await this.syncActivities(user); 
 
             user.last_synced_at = new Date();
             await user.save();
@@ -54,14 +55,19 @@ export class SyncService {
         });
 
         const repos = response.data;
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const sinceDateString = thirtyDaysAgo.toISOString();
 
         for (const repo of repos) {
+            // 1. Fetch languages for each repo
             const langResponse = await axios.get(repo.languages_url, {
                 headers: { Authorization: `Bearer ${user.access_token}` }
             });
             const languages = langResponse.data;
 
-            await this.repositoryService.upsertRepository({
+            // 2. Create or Update Repository in DB
+            const dbRepo = await this.repositoryService.upsertRepository({
                 user_id: user.id,
                 name: repo.name,
                 url: repo.html_url,
@@ -69,39 +75,45 @@ export class SyncService {
                 language: repo.language,
                 languages: languages
             });
+
+            // 3. Fetch Commits directly for accuracy (Last 30 days)
+            // repo.commits_url is e.g. "https://api.github.com/repos/octocat/Hello-World/commits{/sha}"
+            const commitsUrl = repo.commits_url.replace('{/sha}', '');
+            try {
+                const commitsResponse = await axios.get(`${commitsUrl}?since=${sinceDateString}&per_page=100`, {
+                    headers: { Authorization: `Bearer ${user.access_token}` }
+                });
+
+                const commits = commitsResponse.data;
+                const commitsByDate: Record<string, number> = {};
+
+                for (const commitData of commits) {
+                    // commitData.commit.committer.date
+                    const dateStr = commitData.commit.committer.date;
+                    const date = new Date(dateStr);
+                    date.setUTCHours(0, 0, 0, 0);
+                    const isoDate = date.toISOString().split('T')[0];
+
+                    commitsByDate[isoDate] = (commitsByDate[isoDate] || 0) + 1;
+                }
+
+                // 4. Update Activity (Daily counts)
+                for (const [dateStr, count] of Object.entries(commitsByDate)) {
+                    await this.activityService.upsertActivity({
+                        repo_id: dbRepo.id,
+                        type: 'commit',
+                        date: new Date(dateStr),
+                        count: count
+                    });
+                }
+            } catch (err: any) {
+                console.warn(`Could not sync commits for ${repo.name}: ${err.message}`);
+            }
         }
     }
 
     private async syncActivities(user: User): Promise<void> {
-        const response = await axios.get(`https://api.github.com/users/${user.username}/events?per_page=100`, {
-            headers: { Authorization: `Bearer ${user.access_token}` }
-        });
-
-        const events = response.data;
-
-        const pushEvents = events.filter((e: any) => e.type === 'PushEvent');
-
-        for (const event of pushEvents) {
-            const repoFullName = event.repo.name;
-            const repoName = repoFullName.split('/')[1];
-
-            const repo = await this.repositoryService.findByNameAndUser(repoName, user.id);
-
-            if (repo) {
-                const date = new Date(event.created_at);
-                date.setUTCHours(0, 0, 0, 0);
-
-                const commitCount = event.payload.size || (event.payload.commits ? event.payload.commits.length : 1);
-
-                await this.activityService.trackActivity({
-                    repo_id: repo.id,
-                    type: 'commit',
-                    date: date,
-                    count: commitCount
-                });
-            } else {
-                console.log(`Repo not found in sync: ${repoName} for user ${user.id}`);
-            }
-        }
+        // Deprecated for commit tracking, but kept for future event types (PRs, issues) if needed.
+        // For now, it doesn't do anything to avoid duplicate counts.
     }
 }

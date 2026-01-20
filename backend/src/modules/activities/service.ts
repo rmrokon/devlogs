@@ -48,4 +48,8 @@ export class ActivityService {
         }
         return await this.activityRepository.create(data);
     }
+
+    async upsertActivity(data: CreateActivityInput): Promise<Activity> {
+        return await this.activityRepository.upsert(data);
+    }
 }

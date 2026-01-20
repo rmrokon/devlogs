@@ -28,4 +28,9 @@ export class ActivityRepository {
     async findByRepoTypeDate(repoId: number, type: string, date: Date): Promise<Activity | null> {
         return await Activity.findOne({ where: { repo_id: repoId, type, date } });
     }
+
+    async upsert(data: ICreateActivityDTO): Promise<Activity> {
+        const [activity] = await Activity.upsert(data);
+        return activity;
+    }
 }
