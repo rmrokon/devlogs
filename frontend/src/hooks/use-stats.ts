@@ -55,3 +55,13 @@ export function useSync() {
         }
     });
 }
+export function usePublicStats(username: string) {
+    return useQuery<DashboardStats>({
+        queryKey: ['public-stats', username],
+        queryFn: async () => {
+            const { data } = await api.get(`/stats/public/${username}`);
+            return data;
+        },
+        enabled: !!username,
+    });
+}

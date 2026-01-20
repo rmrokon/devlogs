@@ -12,7 +12,9 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
-    const isPublicRoute = request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/';
+    const isPublicRoute = request.nextUrl.pathname === '/login' ||
+        request.nextUrl.pathname === '/' ||
+        request.nextUrl.pathname.startsWith('/embed');
 
     if (!token && !isPublicRoute && !request.nextUrl.pathname.startsWith('/api') && !request.nextUrl.pathname.includes('.')) {
         // Redirect unauthenticated users to login

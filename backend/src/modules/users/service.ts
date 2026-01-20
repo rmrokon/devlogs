@@ -32,4 +32,8 @@ export class UserService {
     async getUserByGithubId(githubId: string): Promise<User | null> {
         return await this.userRepository.findByGithubId(githubId);
     }
+
+    async getUserByUsername(username: string): Promise<User | null> {
+        return await this.userRepository.findByUsername(username);
+    }
 }

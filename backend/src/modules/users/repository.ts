@@ -24,4 +24,8 @@ export class UserRepository {
     async findByGithubId(githubId: string): Promise<User | null> {
         return await User.findOne({ where: { github_id: githubId } });
     }
+
+    async findByUsername(username: string): Promise<User | null> {
+        return await User.findOne({ where: { username } });
+    }
 }
