@@ -14,6 +14,14 @@ export const sequelize = new Sequelize(dbName, dbUser, dbPassword, {
     port: dbPort,
     dialect: "postgres",
     logging: false,
+    ssl: true,
+    dialectOptions: {
+        ssl: {
+            require: true,
+            rejectUnauthorized: true,
+            ca: process.env.CA_CERT,
+        },
+    },
 });
 
 export const connectDB = async () => {
