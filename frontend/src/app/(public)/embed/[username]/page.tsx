@@ -37,6 +37,17 @@ export default function EmbedPage({ params: paramsPromise }: { params: Promise<{
 
     return (
         <div className="p-4 space-y-4 bg-background min-h-screen">
+            <div className="text-left">
+                <a
+                    href="/login"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                >
+                    <span>Powered by</span>
+                    <span className="font-bold"> DevLogs</span>
+                </a>
+            </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {config.commits && (
                     <StatCard

@@ -52,6 +52,8 @@ export default function DashboardPage() {
     const generateIframe = () => {
         const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
         const params = new URLSearchParams();
+        let estimatedHeight = 120; // Padding & Footer
+
         if (config.commits) params.set('commits', '1');
         if (config.trend) params.set('trend', '1');
         if (config.languages) params.set('languages', '1');
@@ -59,8 +61,12 @@ export default function DashboardPage() {
         if (config.longestStreak) params.set('longestStreak', '1');
         if (config.repos) params.set('repos', '1');
 
+        if (config.commits || config.streak || config.longestStreak) estimatedHeight += 160;
+        if (config.trend || config.languages) estimatedHeight += 440;
+        if (config.repos) estimatedHeight += 500;
+
         const url = `${baseUrl}/embed/${user?.username}?${params.toString()}`;
-        return `<iframe src="${url}" width="100%" height="600" frameborder="0"></iframe>`;
+        return `<iframe src="${url}" width="100%" height="${estimatedHeight}"></iframe>`;
     };
 
     const copyToClipboard = () => {
