@@ -1,6 +1,8 @@
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      target: development
     ports:
       - "3000:3000"
     environment:
@@ -15,6 +17,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
+
 
   frontend:
     build:
